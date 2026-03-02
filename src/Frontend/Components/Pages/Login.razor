@@ -1,0 +1,116 @@
+@page "/login"
+@rendermode InteractiveServer
+
+<PageTitle>Sign In — CanBankX</PageTitle>
+
+<div class="auth-page">
+    <div class="bg-layer">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow glow-2"></div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-panel-header">
+            <a href="/" class="logo">
+                <svg class="logo-mark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 2L19 8L12 14L5 8Z" fill="currentColor" opacity="0.95" />
+                    <path d="M12 10L19 16L12 22L5 16Z" fill="currentColor" opacity="0.50" />
+                </svg>
+                <span class="logo-text">CanBankX</span>
+            </a>
+            <h2>Welcome Back</h2>
+            <p>Sign in to access your private banking portal.</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-error">
+                <span class="alert-icon">⚠</span>
+                @_errorMessage
+            </div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleLogin" FormName="login">
+            <DataAnnotationsValidator />
+
+            <div class="field">
+                <label>Email Address</label>
+                <InputText @bind-Value="_model.Email" type="email" placeholder="you@example.com" autocomplete="email" />
+                <ValidationMessage For="() => _model.Email" />
+            </div>
+
+            <div style="height: 1rem;"></div>
+
+            <div class="field">
+                <label>
+                    Password
+                    <a href="#" class="field-link">Forgot?</a>
+                </label>
+                <InputText @bind-Value="_model.Password" type="password" placeholder="••••••••" autocomplete="current-password" />
+                <ValidationMessage For="() => _model.Password" />
+            </div>
+
+            <div style="height: 1rem;"></div>
+
+            <div class="field-check">
+                <InputCheckbox @bind-Value="_model.RememberMe" id="remember" />
+                <label for="remember">Keep me signed in</label>
+            </div>
+
+            <button type="submit" class="btn-primary btn-full" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span class="spinner"></span>
+                    <span>Signing in…</span>
+                }
+                else
+                {
+                    <span>Sign In →</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="auth-divider">
+            <span>Secure connection</span>
+        </div>
+
+        <div class="security-badges">
+            <span class="badge">🔒 Encrypted</span>
+            <span class="badge">🇨🇦 CDIC Insured</span>
+            <span class="badge">✓ FINTRAC</span>
+        </div>
+
+        <p class="auth-switch">New to CanBankX? <a href="/register">Open an account →</a></p>
+    </div>
+</div>
+
+@code {
+    private LoginModel _model = new();
+    private bool _isLoading = false;
+    private string? _errorMessage;
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        // Login endpoint not yet implemented — placeholder
+        await Task.Delay(800);
+        _errorMessage = "Login service not yet available. Please register if you're new.";
+
+        _isLoading = false;
+    }
+
+    private class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email is required")]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

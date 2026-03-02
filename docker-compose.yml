@@ -1,0 +1,95 @@
+name: canbankx
+
+services:
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: canbankx-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      #users:
+        #condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - public
+      - internal
+
+  frontend:
+    build:
+      context: .
+      dockerfile: src/Frontend/Dockerfile
+    container_name: canbankx-frontend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Gateway__BaseUrl: http://gateway:80
+    expose:
+      - "8080"
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    networks:
+      - internal
+
+  users:
+    build:
+      context: .
+      dockerfile: src/Users/Dockerfile
+    container_name: canbankx-users
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__UserDb: >-
+        Host=postgres;Port=5432;Database=canbankx_users;
+        Username=${POSTGRES_USER:-canbankx};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      Kyc__BaseUrl:   ${KYC_BASE_URL:-http://kyc-mock:3000}
+      Kyc__ApiKey:    ${KYC_API_KEY:-dev-key}
+      ASPNETCORE_URLS: http://+:8080
+    expose:
+      - "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    #healthcheck:
+      #test: ["CMD-SHELL", "curl -sf http://localhost:8081/health || exit 1"]
+      #interval: 10s
+      #timeout: 5s
+      #retries: 5
+      #start_period: 20s
+    restart: unless-stopped
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: canbankx-postgres
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-canbankx}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB:       canbankx_users
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-canbankx}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
