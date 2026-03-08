@@ -9,7 +9,7 @@ namespace Users.Domain.ValueObjects
 
         public PhoneNumber(string value)
         {
-            if (string.IsNullOrWhiteSpace(value) || !value.StartsWith('+') || value.Length < 10) throw new UserDomainException($"'{value}' is not a valid E.164 phone number.");
+            if (string.IsNullOrWhiteSpace(value) || !value.StartsWith('+') || value.Length < 10) throw new DomainValidationException("PhoneNumber", $"'{value}' is not a valid E.164 phone number.");
 
             Value = value.Trim();
         }

@@ -1,0 +1,124 @@
+﻿@page "/verify-email"
+@using Frontend.Services
+@inject TokenService TokenService
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<PageTitle>Verify Email — CanBankX</PageTitle>
+
+<div class="auth-page">
+    <div class="bg-layer">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow glow-1"></div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-panel-header">
+            <a href="/" class="logo">
+                <svg class="logo-mark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 2L19 8L12 14L5 8Z" fill="currentColor" opacity="0.95" />
+                    <path d="M12 10L19 16L12 22L5 16Z" fill="currentColor" opacity="0.50" />
+                </svg>
+                <span class="logo-text">CanBankX</span>
+            </a>
+            <h2>Verify Your Email</h2>
+            <p>We sent a 6-digit code to <strong>@_email</strong>. Enter it below to activate your account.</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-error">
+                <span class="alert-icon">⚠</span>
+                @_errorMessage
+            </div>
+        }
+
+        @if (_success)
+        {
+            <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                Email verified! Redirecting to sign in…
+            </div>
+        }
+        else if (_isAuthorized)
+        {
+            <div class="form-step" style="gap: 1em; display: flex; flex-direction: column;">
+                <div class="field">
+                    <label>Verification Code</label>
+                    <input type="text"
+                           inputmode="numeric"
+                           maxlength="6"
+                           placeholder="000000"
+                           class="code-input"
+                           @bind="_code"
+                           @bind:event="oninput" />
+                </div>
+                <div style="height: 1em;" />
+                <button class="btn-primary btn-full" disabled="@(_isLoading || _code.Length != 6)" @onclick="HandleVerify">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner"></span>
+                        <span>Verifying…</span>
+                    }
+                    else
+                    {
+                        <span>Verify Email</span>
+                    }
+                </button>
+                <div style="height: 1em;" />
+                <p class="auth-switch">Didn't receive a code? <a href="#" @onclick="HandleResend" @onclick:preventDefault>Resend →</a></p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _code = string.Empty;
+    private string? _email;
+    private bool _isLoading = false;
+    private bool _success = false;
+    private bool _isAuthorized = false;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await TokenService.GetTokenAsync();
+
+        if (!TokenService.IsTokenValid(token) || TokenService.GetPurpose(token!) != "verify-email")
+        {
+            return;
+        }
+
+        _email = TokenService.GetClaim(token!, "email");
+        _isAuthorized = true;
+    }
+
+    private async Task HandleVerify()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, error) = await AuthService.VerifyEmailAsync(_code);
+
+        if (success)
+        {
+            _success = true;
+            await Task.Delay(1500);
+            Nav.NavigateTo("/accounts", replace: true);
+        }
+        else
+        {
+            _errorMessage = error;
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task HandleResend()
+    {
+        _errorMessage = null;
+        // var (success, error) = await AuthService.ResendVerificationEmailAsync();
+        // if (!success) _errorMessage = error;
+    }
+}

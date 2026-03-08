@@ -10,8 +10,8 @@ namespace Users.Domain.ValueObjects
 
         public FullName(string firstName, string lastName)
         {
-            if (string.IsNullOrWhiteSpace(firstName)) throw new UserDomainException("First name cannot be empty.");
-            if (string.IsNullOrWhiteSpace(lastName)) throw new UserDomainException("Last name cannot be empty.");
+            if (string.IsNullOrWhiteSpace(firstName)) throw new DomainValidationException("FirstName", $"'{firstName}' is not a valid first name.");
+            if (string.IsNullOrWhiteSpace(lastName)) throw new DomainValidationException("LastName", $"'{lastName}' is not a valid first name.");
 
             FirstName = firstName.Trim();
             LastName = lastName.Trim();

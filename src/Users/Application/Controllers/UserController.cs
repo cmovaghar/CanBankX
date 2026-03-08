@@ -1,10 +1,9 @@
-﻿using FluentValidation;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Users.Application.Commands;
-using Users.Application.Requests;
-using Users.Application.Results;
-using Users.Domain.Exceptions;
+using Shared;
+using Users.Application.Commands.LoginUser;
+using Users.Application.Commands.RegisterUser;
+using Users.Application.Commands.SetupInteracDeposit;
 
 namespace Users.Application.Controllers
 {
@@ -17,12 +16,8 @@ namespace Users.Application.Controllers
         private readonly ILogger<UsersController> _logger = logger;
 
         [HttpPost("register")]
-        [ProducesResponseType(typeof(RegisterUserResult), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> Register(
-            [FromBody] RegisterUserRequest request,
-            CancellationToken cancellationToken)
+        [PublicEndpoint]
+        public async Task<IActionResult> Register([FromBody] RegisterUserRequest request, CancellationToken cancellationToken)
         {
             var command = new RegisterUserCommand(
                 request.Email,
@@ -34,35 +29,50 @@ namespace Users.Application.Controllers
                 request.City,
                 request.Province,
                 request.PostalCode,
+                request.Sin,
                 request.PhoneNumber);
 
-            try
-            {
-                var result = await _mediator.Send(command, cancellationToken);
+            var result = await _mediator.Send(command, cancellationToken);
 
-                _logger.LogInformation(
-                    "User registered successfully. UserId={UserId} Email={Email}",
-                    result.UserId, result.Email);
+            _logger.LogInformation("User registered successfully. UserId={UserId} Email={Email}", result.UserId, result.Email);
 
-                return CreatedAtAction(nameof(Register), new { id = result.UserId }, result);
-            }
-            catch (ValidationException ex)
-            {
-                var errors = ex.Errors
-                    .GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(e => e.ErrorMessage).ToArray());
+            return CreatedAtAction(nameof(Register), new { result.Token });
+        }
 
-                return ValidationProblem(new ValidationProblemDetails(errors));
-            }
-            catch (UserDomainException ex) when (ex.Message.Contains("already exists"))
-            {
-                return Problem(
-                    title: "Conflict",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status409Conflict);
-            }
+        [HttpPost("login")]
+        [PublicEndpoint]
+        public async Task<IActionResult> Login([FromBody] LoginUserRequest request, CancellationToken cancellationToken)
+        {
+            var command = new LoginUserCommand(request.Email, request.Password);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            _logger.LogInformation("User logged-in successfully. UserId={UserId} Email={Email}", result.UserId, result.Email);
+            return Ok(new { token = result.Token });
+        }
+
+        [HttpGet("setup-interac")]
+        [LoginEndpoint(JwtPurposes.Login)]
+        public async Task<IActionResult> GetInterac([FromBody] SetupInteracDepositRequest request, CancellationToken cancellationToken)
+        {
+            Guid userId = User.GetUserId();
+            var command = new SetupInteracDepositCommand(userId, request.AccountId);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            _logger.LogInformation("User {UserId} set interac deposit account {AccountId}.", userId, result.AccountId);
+            return Ok(result.AccountId);
+        }
+
+
+        [HttpPost("setup-interac")]
+        [LoginEndpoint(JwtPurposes.Login)]
+        public async Task<IActionResult> SetupInterac([FromBody] SetupInteracDepositRequest request, CancellationToken cancellationToken)
+        {
+            Guid userId = User.GetUserId();
+            var command = new SetupInteracDepositCommand(userId, request.AccountId);
+            var result = await _mediator.Send(command, cancellationToken);
+
+            _logger.LogInformation("User {UserId} set interac deposit account {AccountId}.", userId, result.AccountId);
+            return Ok(result.AccountId);
         }
     }
 }

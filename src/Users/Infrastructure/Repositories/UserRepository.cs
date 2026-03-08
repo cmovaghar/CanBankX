@@ -19,16 +19,12 @@ namespace Users.Infrastructure.Repositories
 
         public async Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
-            return await _context.Users.FirstOrDefaultAsync(
-                u => u.Email.Value.Equals(email, StringComparison.InvariantCultureIgnoreCase), 
-                cancellationToken);
+            return await _context.Users.FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email.Value, email), cancellationToken);
         }
 
         public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
-            return await _context.Users.AnyAsync(
-                u => u.Email.Value.Equals(email, StringComparison.InvariantCultureIgnoreCase),
-                cancellationToken);
+            return await _context.Users.AnyAsync(u => EF.Functions.ILike(u.Email.Value, email), cancellationToken);
         }
         public void Add(User user)
         {

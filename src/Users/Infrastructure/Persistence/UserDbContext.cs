@@ -6,15 +6,16 @@ using Users.Domain.Entities;
 
 namespace Users.Infrastructure.Persistence
 {
-    public class UserDbContext(DbContextOptions<UserDbContext> options, IMediator mediator) : DbContext(options), IUnitOfWork
+    public class UserDbContext(DbContextOptions<UserDbContext> options, IMediator? mediator) : DbContext(options), IUnitOfWork
     {
-        private readonly IMediator _mediator = mediator;
+        private readonly IMediator? _mediator = mediator;
 
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(UserDbContext).Assembly);
+            base.OnModelCreating(modelBuilder);
         }
 
         public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
@@ -37,9 +38,12 @@ namespace Users.Infrastructure.Persistence
 
             domainEntities.ForEach(e => e.Entity.ClearDomainEvents());
 
-            foreach (var domainEvent in domainEvents)
+            if (_mediator != null)
             {
-                await _mediator.Publish(domainEvent, cancellationToken);
+                foreach (var domainEvent in domainEvents)
+                {
+                    await _mediator.Publish(domainEvent, cancellationToken);
+                }
             }
         }
     }

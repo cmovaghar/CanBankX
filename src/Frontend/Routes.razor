@@ -1,0 +1,86 @@
+@using Frontend.Services
+@inject TokenService TokenService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="routeData">
+        @if (_checked)
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        }
+    </Found>
+</Router>
+
+@code {
+    private bool _checked = false;
+
+    private static readonly string[] PublicRoutes = ["/", "/login", "/register"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RunGuard();
+
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        await RunGuard();
+        StateHasChanged();
+    }
+
+    private async Task RunGuard()
+    {
+        var token = await TokenService.GetTokenAsync();
+        var path = new Uri(Nav.Uri).AbsolutePath.ToLowerInvariant().TrimEnd('/');
+        if (string.IsNullOrEmpty(path)) path = "/";
+
+        var isPublic = PublicRoutes.Contains(path);
+
+        if (!TokenService.IsTokenValid(token))
+        {
+            // Clear any stale token
+            if (token is not null)
+                await TokenService.RemoveTokenAsync();
+
+            if (!isPublic)
+                Nav.NavigateTo("/", replace: true);
+
+            _checked = true;
+            return;
+        }
+
+        var purpose = TokenService.GetPurpose(token!);
+
+        switch (purpose)
+        {
+            case "verify-email":
+                // Only /verify-email is allowed
+                if (path != "/verify-email")
+                    Nav.NavigateTo("/verify-email", replace: true);
+                break;
+
+            case "login":
+                // Only /accounts (and any sub-paths) is allowed
+                if (isPublic || path == "/verify-email")
+                    Nav.NavigateTo("/accounts", replace: true);
+                break;
+
+            default:
+                // Unknown purpose — clear token and send home
+                await TokenService.RemoveTokenAsync();
+                if (!isPublic)
+                    Nav.NavigateTo("/", replace: true);
+                break;
+        }
+
+        _checked = true;
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

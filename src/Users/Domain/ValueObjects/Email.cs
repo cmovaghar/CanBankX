@@ -1,4 +1,5 @@
 ﻿using Shared;
+using System.Net;
 using Users.Domain.Exceptions;
 
 namespace Users.Domain.ValueObjects
@@ -9,7 +10,7 @@ namespace Users.Domain.ValueObjects
 
         public Email(string value)
         {
-            if (string.IsNullOrWhiteSpace(value) || !value.Contains('@')) throw new UserDomainException($"'{value}' is not a valid email address.");
+            if (string.IsNullOrWhiteSpace(value) || !value.Contains('@')) throw new DomainValidationException("Email", $"'{value}' is not a valid email address.");
 
             Value = value.Trim().ToLowerInvariant();
         }

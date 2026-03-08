@@ -9,7 +9,7 @@ namespace Users.Domain.ValueObjects
 
         public HashedPassword(string hash)
         {
-            if (string.IsNullOrWhiteSpace(hash)) throw new UserDomainException("Password hash cannot be empty.");
+            if (string.IsNullOrWhiteSpace(hash)) throw new ValueEmptyException("HashedPassword", "Password hash cannot be empty.");
 
             Hash = hash;
         }

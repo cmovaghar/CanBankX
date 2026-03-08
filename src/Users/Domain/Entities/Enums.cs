@@ -2,18 +2,13 @@
 {
     public enum UserStatus
     {
-        PendingVerification,
+        PendingEmailVerification,
+        PendingKyc,
+        KycInProgress,
+        KycRejected,
         Active,
         Suspended,
         Closed
-    }
-
-    public enum KycStatus
-    {
-        NotStarted,
-        InProgress,
-        Approved,
-        Rejected
     }
 
     public enum TwoFactorMethod

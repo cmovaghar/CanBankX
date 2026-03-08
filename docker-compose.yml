@@ -3,36 +3,22 @@ name: canbankx
 services:
 
   gateway:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
     container_name: canbankx-gateway
     ports:
       - "8080:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      frontend:
-        condition: service_started
-      #users:
-        #condition: service_healthy
+      users:
+        condition: service_healthy
+      accounts:
+        condition: service_healthy
+      transactions:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - public
-      - internal
-
-  frontend:
-    build:
-      context: .
-      dockerfile: src/Frontend/Dockerfile
-    container_name: canbankx-frontend
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      Gateway__BaseUrl: http://gateway:80
-    expose:
-      - "8080"
-    ports:
-      - 8080:8080
-    restart: unless-stopped
-    networks:
       - internal
 
   users:
@@ -42,40 +28,135 @@ services:
     container_name: canbankx-users
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8081
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      INTERNAL_HEADER: ${INTERNAL_HEADER}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      KEY: ${KEY}
+      IV: ${IV}
       ConnectionStrings__UserDb: >-
-        Host=postgres;Port=5432;Database=canbankx_users;
-        Username=${POSTGRES_USER:-canbankx};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      Kyc__BaseUrl:   ${KYC_BASE_URL:-http://kyc-mock:3000}
-      Kyc__ApiKey:    ${KYC_API_KEY:-dev-key}
-      ASPNETCORE_URLS: http://+:8080
+        Host=postgres-users;Port=5432;Database=${USERS_DB_NAME};Username=${USERS_DB_USER};Password=${USERS_DB_PASS:?USERS_DB_PASS is required}
     expose:
       - "8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
     depends_on:
-      postgres:
+      postgres-users:
         condition: service_healthy
-    #healthcheck:
-      #test: ["CMD-SHELL", "curl -sf http://localhost:8081/health || exit 1"]
-      #interval: 10s
-      #timeout: 5s
-      #retries: 5
-      #start_period: 20s
+    restart: unless-stopped
+    networks:
+      - internal
+      
+  accounts:
+    build:
+      context: .
+      dockerfile: src/Accounts/Dockerfile
+    container_name: canbankx-accounts
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8081
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      INTERNAL_HEADER: ${INTERNAL_HEADER}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      ConnectionStrings__AccountDb: >-
+        Host=postgres-accounts;Port=5432;Database=${ACCOUNTS_DB_NAME};Username=${ACCOUNTS_DB_USER};Password=${ACCOUNTS_DB_PASS:?ACCOUNTS_DB_PASS is required}
+    expose:
+      - "8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres-accounts:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+      
+  transactions:
+    build:
+      context: .
+      dockerfile: src/Transactions/Dockerfile
+    container_name: canbankx-transactions
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8081
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      INTERNAL_HEADER: ${INTERNAL_HEADER}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      ConnectionStrings__TransactionDb: >-
+        Host=postgres-transactions;Port=5432;Database=${TRANSACTIONS_DB_NAME};Username=${TRANSACTIONS_DB_USER};Password=${TRANSACTIONS_DB_PASS:?TRANSACTIONS_DB_PASS is required}
+    expose:
+      - "8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres-transactions:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - internal
 
-  postgres:
+  postgres-users:
     image: postgres:16-alpine
-    container_name: canbankx-postgres
+    container_name: canbankx-postgres-users
     environment:
-      POSTGRES_USER:     ${POSTGRES_USER:-canbankx}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB:       canbankx_users
+      POSTGRES_USER: ${USERS_DB_USER}
+      POSTGRES_PASSWORD: ${USERS_DB_PASS:?USERS_DB_PASS is required}
+      POSTGRES_DB: ${USERS_DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_users_data:/var/lib/postgresql/data
     expose:
       - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-canbankx}"]
+      test: ["CMD-SHELL", "pg_isready -U ${USERS_DB_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - internal
+
+  postgres-accounts:
+    image: postgres:16-alpine
+    container_name: canbankx-postgres-accounts
+    environment:
+      POSTGRES_USER: ${ACCOUNTS_DB_USER}
+      POSTGRES_PASSWORD: ${ACCOUNTS_DB_PASS:?ACCOUNTS_DB_PASS is required}
+      POSTGRES_DB: ${ACCOUNTS_DB_NAME}
+    volumes:
+      - postgres_accounts_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ACCOUNTS_DB_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - internal
+
+  postgres-transactions:
+    image: postgres:16-alpine
+    container_name: canbankx-postgres-transactions
+    environment:
+      POSTGRES_USER: ${TRANSACTIONS_DB_USER}
+      POSTGRES_PASSWORD: ${TRANSACTIONS_DB_PASS:?TRANSACTIONS_DB_PASS is required}
+      POSTGRES_DB: ${TRANSACTIONS_DB_NAME}
+    volumes:
+      - postgres_transactions_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TRANSACTIONS_DB_USER}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -84,8 +165,9 @@ services:
       - internal
 
 volumes:
-  postgres_data:
-    driver: local
+  postgres_users_data:
+  postgres_accounts_data:
+  postgres_transactions_data:
 
 networks:
   public:

@@ -1,0 +1,329 @@
+{
+  "info": {
+    "name": "CanBankX API",
+    "description": "CanBankX",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Token saved (verify-email purpose)');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"street\": \"123 Rue Sainte-Catherine\",\n  \"city\": \"Montreal\",\n  \"province\": \"QC\",\n  \"postalCode\": \"H3B1A7\",\n  \"sin\": \"046454286\",\n  \"phoneNumber\": \"+15145551234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Inscription d'un nouveau client. Retourne un token JWT avec le claim `purpose`:`verify-email`. Le SIN doit être 9 chiffres. Le mot de passe doit contenir au minimum 12 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Token saved (login purpose)');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"password\": \"admin\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Authentification. Retourne un token JWT avec le claim `purpose`:`login`. Le token est automatiquement sauvegardé dans la variable `token` de la collection.\n\nCompte de test pré-créé (KYC approuvé) : admin@admin.com / admin\nCompte de test non vérifié : test@test.com / test"
+          }
+        },
+        {
+          "name": "Get Interac Deposit Account",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/setup-interac",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "setup-interac"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Récupère le compte Interac de dépôt configuré pour l'utilisateur connecté. Requiert un token JWT `login`."
+          }
+        },
+        {
+          "name": "Setup Interac Deposit Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/setup-interac",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "setup-interac"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Configure le compte bancaire de dépôt Interac pour l'utilisateur connecté. Remplacer `accountId` par l'UUID d'un compte existant appartenant à l'utilisateur. Requiert un token JWT `login`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Get All Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            },
+            "description": "Retourne la liste de tous les comptes actifs (chèques et épargne) de l'utilisateur connecté. Requiert un token JWT `login`."
+          }
+        },
+        {
+          "name": "Open Account — Chequing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Chequing\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ouvre un compte chèque en CAD avec un solde initial de 100 $. Retourne l'UUID du compte créé. Requiert un token JWT `login`."
+          }
+        },
+        {
+          "name": "Open Account — Savings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Savings\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ouvre un compte épargne en CAD avec un solde initial de 100 $. Retourne l'UUID du compte créé. Requiert un token JWT `login`."
+          }
+        },
+        {
+          "name": "[Interne] Transfer Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Secret", "value": "51d651c1084be1e041566a2c" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/transfer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "transfer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"00000000-0000-0000-0000-000000000000\",\n  \"to\": \"00000000-0000-0000-0000-000000000000\",\n  \"amount\": 50.00,\n  \"currency\": \"CAD\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Endpoint interne de transfert de fonds entre deux comptes. Normalement appelé par le service Transactions. Requiert le header `X-Internal-Secret`.\n\nRemplacer `from` et `to` par des UUIDs de comptes valides."
+          }
+        },
+        {
+          "name": "[Interne] Verify Ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Secret", "value": "51d651c1084be1e041566a2c" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/verify-ownership",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "verify-ownership"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"00000000-0000-0000-0000-000000000000\",\n  \"accountId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Endpoint interne de vérification de propriété d'un compte. Normalement appelé par le service Users lors de la configuration Interac. Retourne `true` ou `false`. Requiert le header `X-Internal-Secret`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Initiate Transaction — Account to Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transactions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\",\n  \"fromAccount\": \"00000000-0000-0000-0000-000000000000\",\n  \"destinationType\": \"Account\",\n  \"destination\": \"00000000-0000-0000-0000-000000000000\",\n  \"amount\": 25.00,\n  \"currency\": \"CAD\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Initie un virement entre deux comptes internes. Remplacer `fromAccount` par l'UUID du compte source et `destination` par l'UUID du compte destinataire (doit être différent de la source).\n\n`idempotencyKey` est auto-généré via `{{$guid}}`. Pour tester l'idempotence, fixer le même UUID et renvoyer la requête : la transaction existante est retournée sans re-exécution.\n\nRequiert un token JWT `login`."
+          }
+        },
+        {
+          "name": "Initiate Transaction — Interac",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transactions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{$guid}}\",\n  \"fromAccount\": \"00000000-0000-0000-0000-000000000000\",\n  \"destinationType\": \"Interac\",\n  \"destination\": \"destinataire@example.com\",\n  \"amount\": 25.00,\n  \"currency\": \"CAD\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Initie un virement Interac simulé. Le champ `destination` est l'adresse e-mail du destinataire.\n\nRequiert un token JWT `login`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Users Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "health"]
+            },
+            "description": "Vérifie la disponibilité du service Users et de sa connexion PostgreSQL."
+          }
+        },
+        {
+          "name": "Accounts Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/accounts/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts", "health"]
+            },
+            "description": "Vérifie la disponibilité du service Accounts et de sa connexion PostgreSQL."
+          }
+        },
+        {
+          "name": "Transactions Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/transactions/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transactions", "health"]
+            },
+            "description": "Vérifie la disponibilité du service Transactions et de sa connexion PostgreSQL."
+          }
+        }
+      ]
+    }
+  ]
+}

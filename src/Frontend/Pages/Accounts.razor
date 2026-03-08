@@ -1,0 +1,643 @@
+﻿@page "/accounts"
+@using Frontend.Services
+@inject AuthService AuthService
+@inject TokenService TokenService
+@inject NavigationManager Nav
+@inject HttpClient Http
+
+<PageTitle>Accounts — CanBankX</PageTitle>
+
+<div class="app-shell accounts-shell">
+    <div class="bg-layer">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="bg-glow glow-1"></div>
+        <div class="bg-glow glow-2"></div>
+    </div>
+
+    <!-- Top Nav -->
+    <header class="accounts-header">
+        <a href="/" class="logo">
+            <svg class="logo-mark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2L19 8L12 14L5 8Z" fill="currentColor" opacity="0.95" />
+                <path d="M12 10L19 16L12 22L5 16Z" fill="currentColor" opacity="0.50" />
+            </svg>
+            <span class="logo-text">CanBankX</span>
+        </a>
+
+        <div class="accounts-header-right">
+            @if (_userName is not null)
+            {
+                <span class="greeting">Welcome, <strong>@_userName</strong></span>
+            }
+            <button class="btn-ghost btn-sm" @onclick="HandleLogout">
+                <span>Sign Out</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="accounts-main">
+
+        <!-- Page Title -->
+        <div class="accounts-page-header">
+            <div>
+                <p class="page-eyebrow">Private Banking Portal</p>
+                <h1 class="page-title">Your Accounts</h1>
+            </div>
+            <button class="btn-primary" @onclick='() => ShowModal("open-account")'>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Open New Account
+            </button>
+        </div>
+
+        <!-- Error -->
+        @if (_errorMessage is not null)
+        {
+            <div class="alert alert-error" style="max-width: 900px; margin: 0 auto 24px;">
+                <span class="alert-icon">⚠</span>
+                @_errorMessage
+            </div>
+        }
+
+        <!-- Loading -->
+        @if (_isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner spinner-dark"></div>
+                <span>Loading your accounts…</span>
+            </div>
+        }
+        else
+        {
+            <!-- Account Cards -->
+            <div class="account-cards">
+                @if (_accounts is null || _accounts.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">◈</div>
+                        <p class="empty-title">No accounts yet</p>
+                        <p class="empty-sub">Open a chequing or savings account to get started.</p>
+                        <button class="btn-primary" @onclick='() => ShowModal("open-account")'>Open Your First Account</button>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var account in _accounts)
+                    {
+                        <div class="account-card @(account.Type?.ToLower())">
+                            <div class="account-card-top">
+                                <div>
+                                    <span class="account-type-badge">@account.Type</span>
+                                    <p class="account-number">@FormatAccountNumber(account.AccountNumber)</p>
+                                </div>
+                                <div class="account-card-icon">@(account.Type == "Savings" ? "◉" : "◈")</div>
+                            </div>
+                            <div class="account-balance">
+                                <span class="balance-label">Available Balance</span>
+                                <span class="balance-amount">@FormatCurrency(account.Balance)</span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Actions Grid -->
+            <div class="actions-section">
+                <h2 class="section-title">Quick Actions</h2>
+                <div class="action-grid">
+                    <button class="action-tile" @onclick='() => ShowModal("transfer")'>
+                        <div class="action-tile-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="17 1 21 5 17 9" />
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                                <polyline points="7 23 3 19 7 15" />
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                            </svg>
+                        </div>
+                        <span class="action-tile-label">Transfer Funds</span>
+                        <span class="action-tile-sub">Between accounts or to another user</span>
+                    </button>
+
+                    <button class="action-tile" @onclick='() => ShowModal("history")'>
+                        <div class="action-tile-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                                <polyline points="10 9 9 9 8 9" />
+                            </svg>
+                        </div>
+                        <span class="action-tile-label">Transaction History</span>
+                        <span class="action-tile-sub">View all past transactions</span>
+                    </button>
+
+                    <button class="action-tile" @onclick='() => ShowModal("pay-bill")'>
+                        <div class="action-tile-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                                <line x1="1" y1="10" x2="23" y2="10" />
+                            </svg>
+                        </div>
+                        <span class="action-tile-label">Pay Bills</span>
+                        <span class="action-tile-sub">Pay utilities, services &amp; more</span>
+                    </button>
+
+                    <button class="action-tile" @onclick='() => ShowModal("open-account")'>
+                        <div class="action-tile-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="16" />
+                                <line x1="8" y1="12" x2="16" y2="12" />
+                            </svg>
+                        </div>
+                        <span class="action-tile-label">Open Account</span>
+                        <span class="action-tile-sub">Chequing or savings account</span>
+                    </button>
+                </div>
+            </div>
+        }
+    </main>
+
+    <!-- ── MODALS ── -->
+    @if (_activeModal is not null)
+    {
+        <div class="modal-backdrop" @onclick="CloseModal">
+            <div class="modal-panel" @onclick:stopPropagation>
+                <button class="modal-close" @onclick="CloseModal">✕</button>
+
+                <!-- Open Account -->
+                @if (_activeModal == "open-account")
+                {
+                    <div class="modal-header">
+                        <h3>Open New Account</h3>
+                        <p>Choose the type of account you'd like to open.</p>
+                    </div>
+                    @if (_modalError is not null)
+                    {
+                        <div class="alert alert-error"><span class="alert-icon">⚠</span>@_modalError</div>
+                    }
+                    @if (_modalSuccess is not null)
+                    {
+                        <div class="alert alert-success"><span class="alert-icon">✓</span>@_modalSuccess</div>
+                    }
+                    else
+                    {
+                        <div class="account-type-picker">
+                            <button class="type-option @(_openAccountType == "Chequing" ? "selected" : "")" @onclick='() => _openAccountType = "Chequing"'>
+                                <div class="type-option-icon">◈</div>
+                                <strong>Chequing</strong>
+                                <span>Everyday spending &amp; payments</span>
+                            </button>
+                            <button class="type-option @(_openAccountType == "Savings" ? "selected" : "")" @onclick='() => _openAccountType = "Savings"'>
+                                <div class="type-option-icon">◉</div>
+                                <strong>Savings</strong>
+                                <span>Grow your money over time</span>
+                            </button>
+                        </div>
+                        <button class="btn-primary btn-full" disabled="@(_isModalLoading || _openAccountType is null)" @onclick="HandleOpenAccount">
+                            @if (_isModalLoading)
+                            {
+                                <span class="spinner"></span> <span>Opening…</span>
+                            }
+                            else
+                            {
+                                <span>Open @(_openAccountType ?? "Account")</span>
+                            }
+                        </button>
+                    }
+                }
+
+                <!-- Transfer -->
+                @if (_activeModal == "transfer")
+                {
+                    <div class="modal-header">
+                        <h3>Transfer Funds</h3>
+                        <p>Move money between your accounts or send to another user.</p>
+                    </div>
+                    @if (_modalError is not null)
+                    {
+                        <div class="alert alert-error"><span class="alert-icon">⚠</span>@_modalError</div>
+                    }
+                    @if (_modalSuccess is not null)
+                    {
+                        <div class="alert alert-success"><span class="alert-icon">✓</span>@_modalSuccess</div>
+                    }
+                    else
+                    {
+                        <div class="form-step" style="gap: 16px; display: flex; flex-direction: column;">
+                            <div class="field">
+                                <label>Transfer Type</label>
+                                <select @bind="_transferType">
+                                    <option value="internal">Between my accounts</option>
+                                    <option value="external">To another user (Interac)</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>From Account</label>
+                                <select @bind="_transferFrom">
+                                    <option value="">Select account…</option>
+                                    @foreach (var acc in _accounts ?? new())
+                                    {
+                                        <option value="@acc.Id">@acc.Type — @FormatAccountNumber(acc.AccountNumber) (@FormatCurrency(acc.Balance))</option>
+                                    }
+                                </select>
+                            </div>
+                            @if (_transferType == "internal")
+                            {
+                                <div class="field">
+                                    <label>To Account</label>
+                                    <select @bind="_transferTo">
+                                        <option value="">Select account…</option>
+                                        @foreach (var acc in _accounts ?? new())
+                                        {
+                                            <option value="@acc.Id">@acc.Type — @FormatAccountNumber(acc.AccountNumber)</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="field">
+                                    <label>Recipient Email</label>
+                                    <input type="email" placeholder="recipient@example.com" @bind="_transferEmail" />
+                                </div>
+                            }
+                            <div class="field">
+                                <label>Amount (CAD)</label>
+                                <input type="number" min="0.01" step="0.01" placeholder="0.00" @bind="_transferAmount" />
+                            </div>
+                            <div class="field">
+                                <label>Note <span class="optional">optional</span></label>
+                                <input type="text" placeholder="e.g. Rent for March" @bind="_transferNote" />
+                            </div>
+                            <div style="height: 4px;" />
+                            <button class="btn-primary btn-full" disabled="@_isModalLoading" @onclick="HandleTransfer">
+                                @if (_isModalLoading)
+                                {
+                                    <span class="spinner"></span> <span>Sending…</span>
+                                }
+                                else
+                                {
+                                    <span>Send Transfer →</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                }
+
+                <!-- Transaction History -->
+                @if (_activeModal == "history")
+                {
+                    <div class="modal-header">
+                        <h3>Transaction History</h3>
+                        <p>All transactions across your accounts.</p>
+                    </div>
+                    @if (_transactions is null)
+                    {
+                        <div class="loading-state" style="padding: 40px 0;">
+                            <div class="spinner spinner-dark"></div>
+                            <span>Loading transactions…</span>
+                        </div>
+                    }
+                    else if (_transactions.Count == 0)
+                    {
+                        <div class="empty-state" style="padding: 40px 0;">
+                            <div class="empty-icon">◫</div>
+                            <p class="empty-title">No transactions yet</p>
+                            <p class="empty-sub">Your transaction history will appear here.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tx-list">
+                            @foreach (var tx in _transactions)
+                            {
+                                <div class="tx-row">
+                                    <div class="tx-icon @(tx.Amount >= 0 ? "tx-credit" : "tx-debit")">
+                                        @(tx.Amount >= 0 ? "↓" : "↑")
+                                    </div>
+                                    <div class="tx-info">
+                                        <span class="tx-desc">@tx.Description</span>
+                                        <span class="tx-date">@tx.Date.ToString("MMM d, yyyy")</span>
+                                    </div>
+                                    <span class="tx-amount @(tx.Amount >= 0 ? "tx-credit" : "tx-debit")">
+                                        @(tx.Amount >= 0 ? "+" : "")@FormatCurrency(tx.Amount)
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+
+                <!-- Pay Bill -->
+                @if (_activeModal == "pay-bill")
+                {
+                    <div class="modal-header">
+                        <h3>Pay a Bill</h3>
+                        <p>Pay utilities, subscriptions, and registered payees.</p>
+                    </div>
+                    @if (_modalError is not null)
+                    {
+                        <div class="alert alert-error"><span class="alert-icon">⚠</span>@_modalError</div>
+                    }
+                    @if (_modalSuccess is not null)
+                    {
+                        <div class="alert alert-success"><span class="alert-icon">✓</span>@_modalSuccess</div>
+                    }
+                    else
+                    {
+                        <div class="form-step" style="gap: 16px; display: flex; flex-direction: column;">
+                            <div class="field">
+                                <label>From Account</label>
+                                <select @bind="_billFromAccount">
+                                    <option value="">Select account…</option>
+                                    @foreach (var acc in _accounts ?? new())
+                                    {
+                                        <option value="@acc.Id">@acc.Type — @FormatAccountNumber(acc.AccountNumber) (@FormatCurrency(acc.Balance))</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Payee</label>
+                                <select @bind="_billPayee">
+                                    <option value="">Select payee…</option>
+                                    <option value="hydro-qc">Hydro-Québec</option>
+                                    <option value="bell">Bell Canada</option>
+                                    <option value="rogers">Rogers</option>
+                                    <option value="telus">TELUS</option>
+                                    <option value="enbridge">Enbridge Gas</option>
+                                    <option value="videotron">Vidéotron</option>
+                                    <option value="cra">Canada Revenue Agency</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Account / Reference Number</label>
+                                <input type="text" placeholder="Your account number with the payee" @bind="_billAccountNumber" />
+                            </div>
+                            <div class="field">
+                                <label>Amount (CAD)</label>
+                                <input type="number" min="0.01" step="0.01" placeholder="0.00" @bind="_billAmount" />
+                            </div>
+                            <div style="height: 4px;" />
+                            <button class="btn-primary btn-full" disabled="@_isModalLoading" @onclick="HandlePayBill">
+                                @if (_isModalLoading)
+                                {
+                                    <span class="spinner"></span> <span>Processing…</span>
+                                }
+                                else
+                                {
+                                    <span>Pay Bill →</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _userName;
+    private List<AccountDto>? _accounts;
+    private List<TransactionDto>? _transactions;
+
+    private string? _activeModal;
+    private bool _isModalLoading;
+    private string? _modalError;
+    private string? _modalSuccess;
+
+    private string? _openAccountType;
+
+    private string _transferType = "internal";
+    private string _transferFrom = "";
+    private string _transferTo = "";
+    private string _transferEmail = "";
+    private decimal _transferAmount;
+    private string _transferNote = "";
+
+    private string _billFromAccount = "";
+    private string _billPayee = "";
+    private string _billAccountNumber = "";
+    private decimal _billAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await TokenService.GetTokenAsync();
+        if (TokenService.IsTokenValid(token))
+        {
+            _userName = TokenService.GetClaim(token!, "given_name")
+                     ?? TokenService.GetClaim(token!, "name")
+                     ?? TokenService.GetClaim(token!, "email");
+        }
+
+        await LoadAccounts();
+    }
+
+    private async Task<HttpRequestMessage> BuildRequest(HttpMethod method, string url)
+    {
+        var request = new HttpRequestMessage(method, url);
+        var token = await TokenService.GetTokenAsync();
+        if (token is not null)
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        return request;
+    }
+
+    private async Task LoadAccounts()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var request = await BuildRequest(HttpMethod.Get, "/api/accounts/");
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                _accounts = await response.Content.ReadFromJsonAsync<List<AccountDto>>() ?? new();
+            else
+                _errorMessage = "Unable to load accounts. Please refresh the page.";
+        }
+        catch
+        {
+            _errorMessage = "Unable to connect to the server. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await TokenService.RemoveTokenAsync();
+        Nav.NavigateTo("/", replace: true);
+    }
+
+    private async Task ShowModal(string modal)
+    {
+        _activeModal = modal;
+        _modalError = null;
+        _modalSuccess = null;
+        _openAccountType = null;
+        _isModalLoading = false;
+
+        if (modal == "history")
+            await LoadTransactions();
+    }
+
+    private void CloseModal()
+    {
+        _activeModal = null;
+        _modalError = null;
+        _modalSuccess = null;
+    }
+
+    private async Task HandleOpenAccount()
+    {
+        if (_openAccountType is null) return;
+        _isModalLoading = true;
+        _modalError = null;
+
+        try
+        {
+            var request = await BuildRequest(HttpMethod.Post, "/api/accounts/open");
+            request.Content = JsonContent.Create(new { type = _openAccountType });
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _modalSuccess = $"{_openAccountType} account opened successfully!";
+                await LoadAccounts();
+            }
+            else
+            {
+                _modalError = "Unable to open account. Please try again.";
+            }
+        }
+        catch
+        {
+            _modalError = "Unable to connect to the server.";
+        }
+        finally
+        {
+            _isModalLoading = false;
+        }
+    }
+
+    private async Task HandleTransfer()
+    {
+        _isModalLoading = true;
+        _modalError = null;
+
+        try
+        {
+            var request = await BuildRequest(HttpMethod.Post, "/api/accounts/transfer");
+
+            var payload = _transferType == "internal"
+                ? (object)new { fromAccountId = _transferFrom, toAccountId = _transferTo, amount = _transferAmount, note = _transferNote }
+                : new { fromAccountId = _transferFrom, recipientEmail = _transferEmail, amount = _transferAmount, note = _transferNote };
+
+            request.Content = JsonContent.Create(payload);
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _modalSuccess = "Transfer sent successfully!";
+                await LoadAccounts();
+            }
+            else
+            {
+                _modalError = "Transfer failed. Please check your details and try again.";
+            }
+        }
+        catch
+        {
+            _modalError = "Unable to connect to the server.";
+        }
+        finally
+        {
+            _isModalLoading = false;
+        }
+    }
+
+    private async Task HandlePayBill()
+    {
+        _isModalLoading = true;
+        _modalError = null;
+
+        try
+        {
+            var request = await BuildRequest(HttpMethod.Post, "/api/accounts/pay-bill");
+            request.Content = JsonContent.Create(new
+            {
+                fromAccountId = _billFromAccount,
+                payee = _billPayee,
+                payeeAccountNumber = _billAccountNumber,
+                amount = _billAmount
+            });
+
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _modalSuccess = "Bill payment submitted successfully!";
+                await LoadAccounts();
+            }
+            else
+            {
+                _modalError = "Payment failed. Please check your details and try again.";
+            }
+        }
+        catch
+        {
+            _modalError = "Unable to connect to the server.";
+        }
+        finally
+        {
+            _isModalLoading = false;
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        _transactions = null;
+
+        try
+        {
+            var request = await BuildRequest(HttpMethod.Get, "/api/accounts/transactions");
+            var response = await Http.SendAsync(request);
+
+            _transactions = response.IsSuccessStatusCode
+                ? await response.Content.ReadFromJsonAsync<List<TransactionDto>>() ?? new()
+                : new();
+        }
+        catch
+        {
+            _transactions = new();
+        }
+    }
+
+    private static string FormatCurrency(decimal amount) => amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-CA"));
+
+    private static string FormatAccountNumber(string? number)
+    {
+        if (string.IsNullOrEmpty(number)) return "•••• ••••";
+        return number.Length >= 4 ? $"•••• {number[^4..]}" : number;
+    }
+
+    public record AccountDto(string Id, string? Type, string? AccountNumber, decimal Balance);
+    public record TransactionDto(string Id, string Description, decimal Amount, DateTime Date);
+}

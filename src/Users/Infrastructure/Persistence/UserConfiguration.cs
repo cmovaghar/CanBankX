@@ -8,66 +8,77 @@ namespace Users.Infrastructure.Persistence
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            builder.ToTable("Users");
+            builder.ToTable("users");
 
             builder.HasKey(u => u.Id);
+            builder.Property(u => u.Id).HasColumnName("id");
 
-            builder.OwnsOne(u => u.Email, nav =>
+            builder.OwnsOne(u => u.Email, email =>
             {
-                nav.Property(e => e.Value)
-                   .HasColumnName("Email")
-                   .HasMaxLength(254)
-                   .IsRequired();
-                nav.HasIndex(e => e.Value).IsUnique();
+                email.Property(e => e.Value)
+                    .HasColumnName("email")
+                    .HasMaxLength(256)
+                    .IsRequired();
+                email.HasIndex(e => e.Value).IsUnique();
             });
 
-            builder.OwnsOne(u => u.Password, nav =>
+            builder.OwnsOne(u => u.Password, password =>
             {
-                nav.Property(p => p.Hash)
-                   .HasColumnName("PasswordHash")
-                   .HasMaxLength(512)
-                   .IsRequired();
+                password.Property(p => p.Hash)
+                    .HasColumnName("password_hash")
+                    .HasMaxLength(512)
+                    .IsRequired();
             });
 
-            builder.OwnsOne(u => u.FullName, nav =>
+            builder.OwnsOne(u => u.FullName, name =>
             {
-                nav.Property(n => n.FirstName).HasColumnName("FirstName").HasMaxLength(100).IsRequired();
-                nav.Property(n => n.LastName).HasColumnName("LastName").HasMaxLength(100).IsRequired();
+                name.Property(n => n.FirstName).HasColumnName("first_name").HasMaxLength(100).IsRequired();
+                name.Property(n => n.LastName).HasColumnName("last_name").HasMaxLength(100).IsRequired();
             });
 
-            builder.OwnsOne(u => u.PhoneNumber, nav =>
+            builder.OwnsOne(u => u.PhoneNumber, phone =>
             {
-                nav.Property(p => p.Value).HasColumnName("PhoneNumber").HasMaxLength(20);
+                phone.Property(p => p.Value).HasColumnName("phone_number").HasMaxLength(20);
             });
 
-            builder.OwnsOne(u => u.Address, nav =>
+            builder.OwnsOne(u => u.Address, address =>
             {
-                nav.Property(a => a.Street).HasColumnName("Street").HasMaxLength(200).IsRequired();
-                nav.Property(a => a.City).HasColumnName("City").HasMaxLength(100).IsRequired();
-                nav.Property(a => a.Province).HasColumnName("Province").HasMaxLength(2).IsRequired();
-                nav.Property(a => a.PostalCode).HasColumnName("PostalCode").HasMaxLength(6).IsRequired();
-                nav.Property(a => a.Country).HasColumnName("Country").HasMaxLength(2).IsRequired();
+                address.Property(a => a.Street).HasColumnName("address_street").HasMaxLength(200).IsRequired();
+                address.Property(a => a.City).HasColumnName("address_city").HasMaxLength(100).IsRequired();
+                address.Property(a => a.Province).HasColumnName("address_province").HasMaxLength(2).IsRequired();
+                address.Property(a => a.PostalCode).HasColumnName("address_postal_code").HasMaxLength(6).IsRequired();
+                address.Property(a => a.Country).HasColumnName("address_country").HasMaxLength(2).IsRequired();
+            });
+
+            builder.OwnsOne(u => u.Sin, sin =>
+            {
+                sin.Property(p => p.Encrypted)
+                    .HasColumnName("encrypted_sin")
+                    .HasMaxLength(512)
+                    .IsRequired();
             });
 
             builder.Property(u => u.Status)
-                   .HasConversion<string>()
-                   .HasMaxLength(30)
-                   .IsRequired();
-
-            builder.Property(u => u.KycStatus)
-                   .HasConversion<string>()
-                   .HasMaxLength(30)
-                   .IsRequired();
+                .HasColumnName("status")
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
 
             builder.Property(u => u.TwoFactorMethod)
-                   .HasConversion<string>()
-                   .HasMaxLength(10)
-                   .IsRequired();
+                .HasColumnName("two_factor_method")
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
 
-            builder.Property(u => u.DateOfBirth).IsRequired();
-            builder.Property(u => u.IsTwoFactorEnabled).IsRequired();
-            builder.Property(u => u.CreatedAt).IsRequired();
-            builder.Property(u => u.UpdatedAt);
+            builder.Property(u => u.IsTwoFactorEnabled)
+                .HasColumnName("is_two_factor_enabled")
+                .IsRequired();
+
+            builder.Property(u => u.DateOfBirth).HasColumnName("date_of_birth").IsRequired();
+            builder.Property(u => u.CreatedAt).HasColumnName("created_at").IsRequired();
+            builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
+
+            builder.Property(u => u.InteracDepositAccount).HasColumnName("interact_deposit_account");
 
             builder.Ignore(u => u.DomainEvents);
         }

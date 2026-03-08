@@ -18,14 +18,14 @@ namespace Users.Domain.ValueObjects
 
         public Address(string street, string city, string province, string postalCode, string country = "CA")
         {
-            if (string.IsNullOrWhiteSpace(street)) throw new UserDomainException("Street cannot be empty.");
-            if (string.IsNullOrWhiteSpace(city)) throw new UserDomainException("City cannot be empty.");
+            if (string.IsNullOrWhiteSpace(street)) throw new DomainValidationException("Street", $"'{street}' is not a valid street.");
+            if (string.IsNullOrWhiteSpace(city)) throw new DomainValidationException("City", $"'{city}' is not a valid city.");
 
             var prov = province.Trim().ToUpperInvariant();
-            if (country == "CA" && !CanadianProvinces.Contains(prov)) throw new UserDomainException($"'{province}' is not a valid Canadian province/territory code.");
+            if (country == "CA" && !CanadianProvinces.Contains(prov)) throw new DomainValidationException("Province", $"'{province}' is not a valid Canadian province/territory code.");
 
             var pc = postalCode.Trim().ToUpperInvariant().Replace(" ", "");
-            if (country == "CA" && pc.Length != 6) throw new UserDomainException($"'{postalCode}' is not a valid Canadian postal code.");
+            if (country == "CA" && pc.Length != 6) throw new DomainValidationException("PostalCode", $"'{postalCode}' is not a valid Canadian postal code.");
 
             Street = street.Trim();
             City = city.Trim();
