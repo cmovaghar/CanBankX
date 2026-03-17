@@ -1,6 +1,7 @@
 using Accounts.Infrastructure.Config;
 using Accounts.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using Shared;
 using System.Text.Json.Serialization;
 
@@ -18,7 +19,9 @@ var app = builder.Build();
 app.UseSharedAuth();
 app.MapControllers();
 app.UseExceptionHandler();
+app.UseHttpMetrics();
 
+app.MapMetrics();
 app.MapHealthChecks("/health").WithMetadata(new PublicEndpointAttribute());
 
 using (var scope = app.Services.CreateScope())

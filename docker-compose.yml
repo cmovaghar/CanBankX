@@ -20,6 +20,39 @@ services:
     networks:
       - public
       - internal
+      
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - internal
+    depends_on:
+      users:
+        condition: service_healthy
+      accounts:
+        condition: service_healthy
+      transactions:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+    depends_on:
+      - prometheus
+    networks:
+      - internal
+      - public
 
   users:
     build:
@@ -165,6 +198,8 @@ services:
       - internal
 
 volumes:
+  prometheus_data:
+  grafana_data:
   postgres_users_data:
   postgres_accounts_data:
   postgres_transactions_data:

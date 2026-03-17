@@ -6,6 +6,7 @@ namespace Transactions.Application.EventHandlers
 {
     public class TransactionCreatedEventHandler : INotificationHandler<TransactionCreatedDomainEvent>
     {
+        // TODO
         public Task Handle(TransactionCreatedDomainEvent notification, CancellationToken cancellationToken)
         {
 
@@ -13,7 +14,7 @@ namespace Transactions.Application.EventHandlers
             {
                 TransactionDestinationType.Account => Guid.Parse(notification.Transaction.Destination),
 
-                TransactionDestinationType.Interac => ,
+                TransactionDestinationType.Interac => Guid.NewGuid(),
 
                 _ => throw new InvalidOperationException($"Unknown destination type: {notification.Transaction.DestinationType}")
             };
